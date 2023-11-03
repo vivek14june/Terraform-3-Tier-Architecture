@@ -1,0 +1,97 @@
+import requests
+import json
+
+# Define the EC2 metadata URL
+metadata_url = "http://169.254.169.254/latest/meta-data/"
+
+def get_ec2_metadata(metadata_key):
+    try:
+        # Make an HTTP GET request to the metadata URL with the specified key
+        response = requests.get(metadata_url + metadata_key)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            return response.text
+        else:
+            return None  # Metadata key not found or some other issue
+    except requests.exceptions.RequestException as e:
+        # Handle any network-related errors here
+        print("Error:", e)
+        return None
+
+# Function to retrieve metadata for a specific sublevel
+def get_sublevel_metadata(sublevel_key):
+    sublevel_dict = {}
+    sublevel_url = metadata_url + sublevel_key
+    for key in requests.get(sublevel_url).text.split('\n'):
+        value = get_ec2_metadata(sublevel_key + key)
+        sublevel_dict[key] = value
+    return sublevel_dict
+
+# Define a dictionary of use-cases and corresponding metadata keys
+use_cases = {
+    "1": ("AMI ID", "ami-id"),
+    "2": ("Instance Type", "instance-type"),
+    "3": ("Public IPv4 Address", "public-ipv4"),
+    "4": ("Private IPv4 Address", "local-ipv4"),
+    "5": ("Instance ID", "instance-id"),
+    "6": ("Hostname", "hostname"),
+    "7": ("Availability Zone", "placement/availability-zone"),
+    "8": ("Security Groups", "security-groups"),
+    "9": ("Block Device Mapping", "block-device-mapping/"),
+    "10": ("MAC Address", "network/interfaces/macs/"),
+    "11": ("Entire Metadata", ""),
+}
+
+# Function to recursively display and explore sublevels of metadata
+def explore_metadata(metadata_dict, metadata_key, level=0):
+    if isinstance(metadata_dict, dict):
+        print("\n" + "=" * 40)
+        print(f"Metadata Level {level} - Key: {metadata_key}")
+        print(json.dumps(metadata_dict, indent=4))
+
+        sublevel_key = input(f"Enter a sublevel key (e.g., 'block-device-mapping/') or 'q' to go back: ").strip()
+
+        if sublevel_key == 'q':
+            return
+        else:
+            sublevel_metadata = get_sublevel_metadata(sublevel_key)
+            explore_metadata(sublevel_metadata, sublevel_key, level + 1)
+    else:
+        print(f"{metadata_key}: {metadata_dict}")
+
+# Display the menu to the user
+while True:
+    print("Select a use-case:")
+    for key, (use_case, _) in use_cases.items():
+        print(f"{key}: {use_case}")
+    print("Q: Quit")
+
+    choice = input("Enter your choice: ").strip()
+
+    if choice.lower() == 'q':
+        break
+
+    if choice in use_cases:
+        if choice == "11":
+            # Display the entire metadata and allow exploration
+            entire_metadata = get_sublevel_metadata("")
+            explore_metadata(entire_metadata, "Entire Metadata")
+        else:
+            _, metadata_key = use_cases[choice]
+            value = get_ec2_metadata(metadata_key)
+
+            if value:
+                print(f"{use_cases[choice][0]}:", value)
+            else:
+                print(f"Failed to retrieve {use_cases[choice][0]} information.")
+
+        print("\n" + "=" * 40 + "\n")  # Add a separator with new lines
+    else:
+        print("Invalid choice. Please select a valid option.")
+
+    more = input("Do you want to ask more about metadata? (yes/no): ")
+    if more.lower() != 'yes':
+        break
+
+print("Goodbye!")

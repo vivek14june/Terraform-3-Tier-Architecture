@@ -1,0 +1,7 @@
+how to run this script:
+
+- install python3 on AWS ec2 server
+- save code in file name ec2meta.py
+
+run below command
+- python3 ec2meta.py
