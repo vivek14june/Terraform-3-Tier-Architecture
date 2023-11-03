@@ -1,8 +1,6 @@
 # Terraform-3-Tier-Architecture
 Terraform code for three tier architecture
 
-This project consist of three challenges
-
 Challenge #1
 
 A 3-tier environment is a common setup. Use a tool of your choosing/familiarity create these resources. Please remember we will not be judged on the outcome but more focusing on the approach, style and reproducibility.
